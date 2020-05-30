@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/danielwoodsdeveloper/server/config"
+	"github.com/danielwoodsdeveloper/offline_coding_challenges/server/config"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/gorilla/mux"

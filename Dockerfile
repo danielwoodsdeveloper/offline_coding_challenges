@@ -2,7 +2,7 @@ FROM golang:alpine AS server-builder
 
 RUN apk --no-cache add git
 
-RUN go get github.com/danielwoodsdeveloper/server/config
+RUN go get github.com/danielwoodsdeveloper/offline_coding_challenges/server/config
 RUN go get github.com/docker/docker/api/types
 RUN go get github.com/docker/docker/client
 RUN go get github.com/gorilla/mux

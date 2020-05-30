@@ -16,6 +16,6 @@ runtimes := map[string]runtime {
 	}
 }
 
-func runtime GetRuntime(string) {
+func GetRuntime(string) runtime {
 	return runtimes[string]
 }
