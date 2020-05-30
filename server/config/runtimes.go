@@ -5,7 +5,7 @@ type runtime struct {
 	command string
 }
 
-runtimes := map[string]runtime {
+var runtimes := map[string]runtime {
 	"java8": runtime {
 		image: "openjdk:8-alpine",
 		command: "javac Hello.java && java Hello"
