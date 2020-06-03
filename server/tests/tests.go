@@ -47,3 +47,7 @@ func GetTestByNumber(num int) (Test, error) {
 
 	return Test{}, errors.New("Test not found")
 }
+
+func GetAllTests() ([]Test) {
+	return tests
+}
