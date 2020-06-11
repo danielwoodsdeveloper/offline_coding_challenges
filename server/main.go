@@ -12,13 +12,15 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/danielwoodsdeveloper/offline_coding_challenges/server/config"
+	"github.com/danielwoodsdeveloper/offline_coding_challenges/server/runtimes"
 	"github.com/danielwoodsdeveloper/offline_coding_challenges/server/tests"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/icza/gox/stringsx"
 	"github.com/sony/sonyflake"
 )
 
@@ -30,22 +32,28 @@ type Submission struct {
 type TestCaseResponse struct {
 	Number int `json:"number"`
 	Pass bool `json:"pass"`
-	Output string `json:"output"`
+	Inputs []string `json:"inputs"`
+	Outputs []string `json:"outputs"`
+	Expected []string `json:"expected"`
 }
 
 type SubmissionResponse struct {
 	Pass bool `json:"pass"`
-	TestCases []TestCaseResponse `json:"test-cases"`
+	TestCases []TestCaseResponse `json:"testcases"`
 }
 
-type RuntimeResponse struct {
-	Image string `json:"name"`
+type RuntimeDetailResponse struct {
+	Name string `json:"name"`
+	Display string `json:"display"`
+	Image string `json:"image"`
 	Installed bool `json:"installed"`
+	Template string `json:"template"`
 }
 
 type TestDetailResponse struct {
 	Title string `json:"title"`
 	Description string `json:"description"`
+	Number int `json:"number"`
 }
 
 var sf *sonyflake.Sonyflake
@@ -77,7 +85,7 @@ func TestSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch the runtime details
-	runtime, err := config.GetRuntime(sub.Runtime)
+	runtime, err := runtimes.GetRuntime(sub.Runtime)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -119,10 +127,17 @@ func TestSubmission(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
+			// Setup commands for container
+			cmds := []string{}
+			for _, str := range runtime.Commands {
+				str = strings.ReplaceAll(str, "{INPUTS}", strings.Join(tc.Inputs, " "))
+				cmds = append(cmds, str)
+			}
+
 			// Create the container, mounting a volume to share the temp file
 			resp, err := cli.ContainerCreate(context.Background(), &container.Config {
 				Image: runtime.Image,
-				Cmd: runtime.Commands,
+				Cmd: cmds,
 			}, &container.HostConfig {
 				Mounts: []mount.Mount {
 					{
@@ -163,10 +178,8 @@ func TestSubmission(w http.ResponseWriter, r *http.Request) {
 			}
 			defer logReader.Close()
 
-			// ...and transform it into a string, stripping the first 8 header bytes
-			header := make([]byte, 8)
-			logReader.Read(header) // Read the headers
-			logContent, _ := ioutil.ReadAll(logReader) // Read the rest
+			// ...and transform it into a string
+			logContent, _ := ioutil.ReadAll(logReader)
 
 			err = os.RemoveAll("./" + strconv.Itoa(int(id)))
 			if err != nil {
@@ -174,12 +187,21 @@ func TestSubmission(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
+			// Remove trailing empty log entries
 			output := strings.TrimSuffix(string(logContent), "\n")
+
+			// Remove non-Ascii chars from output
+			splitOut := strings.Split(output, "\n")
+			for i := range splitOut {
+				splitOut[i] = stringsx.Clean(splitOut[i])
+			}
 
 			tcr := TestCaseResponse{}
 			tcr.Number = tc.Number
-			tcr.Pass = output == strings.Join(tc.ExpectedOutput, "\n")
-			tcr.Output = output
+			tcr.Pass = strings.Join(splitOut, "\n") == strings.Join(tc.ExpectedOutput, "\n")
+			tcr.Inputs = tc.Inputs
+			tcr.Outputs = splitOut
+			tcr.Expected = tc.ExpectedOutput
 
 			tcResponses = append(tcResponses, tcr)
 
@@ -216,15 +238,42 @@ func GetRuntimeDetails(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	// Fetch the runtime details
-	runtime, err := config.GetRuntime(vars["name"])
+	runtime, err := runtimes.GetRuntime(vars["name"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	res := RuntimeResponse{}
+	res := RuntimeDetailResponse{}
+	res.Name = runtime.Name
+	res.Display = runtime.Display
 	res.Image = runtime.Image
 	res.Installed = checkImageIsPulled(runtime.Image)
+	res.Template = strings.Join(runtime.Template, "\n")
+
+	json, err := json.Marshal(res)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.Write(json)
+}
+
+func GetAllRuntimeDetails(w http.ResponseWriter, r *http.Request) {
+	// Get all runtimes
+	res := []RuntimeDetailResponse{}
+	for _, runtime := range runtimes.GetAllRuntimes() {
+		det := RuntimeDetailResponse{}
+		det.Name = runtime.Name
+		det.Display = runtime.Display
+		det.Image = runtime.Image
+		det.Installed = checkImageIsPulled(runtime.Image)
+		det.Template = strings.Join(runtime.Template, "\n")
+
+		res = append(res, det)
+	}
 
 	json, err := json.Marshal(res)
 	if err != nil {
@@ -240,7 +289,7 @@ func InstallRuntime(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	// Fetch the runtime details
-	runtime, err := config.GetRuntime(vars["name"])
+	runtime, err := runtimes.GetRuntime(vars["name"])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -254,9 +303,12 @@ func InstallRuntime(w http.ResponseWriter, r *http.Request) {
 	}
 	io.Copy(os.Stdout, reader)
 
-	res := RuntimeResponse{}
+	res := RuntimeDetailResponse{}
+	res.Name = runtime.Name
+	res.Display = runtime.Display
 	res.Image = runtime.Image
 	res.Installed = checkImageIsPulled(runtime.Image)
+	res.Template = strings.Join(runtime.Template, "\n")
 
 	json, err := json.Marshal(res)
 	if err != nil {
@@ -288,6 +340,7 @@ func GetTestDetails(w http.ResponseWriter, r *http.Request) {
 	res := TestDetailResponse{}
 	res.Title = test.Title
 	res.Description = test.Description
+	res.Number = test.Number
 
 	json, err := json.Marshal(res)
 	if err != nil {
@@ -306,6 +359,7 @@ func GetAllTestDetails(w http.ResponseWriter, r *http.Request) {
 		det := TestDetailResponse{}
 		det.Title = test.Title
 		det.Description = test.Description
+		det.Number = test.Number
 
 		res = append(res, det)
 	}
@@ -352,6 +406,7 @@ func main() {
 	router.HandleFunc("/tests/{test_number}", GetTestDetails).Methods("GET")
 	router.HandleFunc("/tests", GetAllTestDetails).Methods("GET")
 	router.HandleFunc("/runtimes/{name}", GetRuntimeDetails).Methods("GET")
+	router.HandleFunc("/runtimes", GetAllRuntimeDetails).Methods("GET")
 	router.HandleFunc("/runtimes/{name}/install", InstallRuntime).Methods("POST")
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
 
@@ -361,6 +416,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	
-	http.ListenAndServe(":8080", router)
+
+	origins := handlers.AllowedOrigins([]string{"*"})
+	headers := handlers.AllowedHeaders([]string{"X-Requested-With", "Origin", "Content-Type"})
+	methods := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
+
+	http.ListenAndServe(":8080", handlers.CORS(origins, headers, methods)(router))
 }
