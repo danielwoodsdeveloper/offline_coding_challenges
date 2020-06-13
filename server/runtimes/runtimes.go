@@ -46,7 +46,7 @@ var runtimes = map[string]Runtime {
 		Name: "golang",
 		Display: "Go",
 		Image: "golang:alpine",
-		Commands: []string{"/bin/sh", "-c", "cd /tmp/{LOCATION} && sleep 500s && go run submission.go {INPUTS}"},
+		Commands: []string{"/bin/sh", "-c", "cd /tmp/{LOCATION} && go run submission.go {INPUTS}"},
 		FileName: "submission.go",
 		Template: []string{
 			"package main",
