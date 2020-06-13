@@ -24,7 +24,11 @@ var tests = []Test {
 		Number: 1,
 		Group: "Beginner",
 		Title: "Hello, World!",
-		Description: "<b>The starting place of all coding journeys.</b>",
+		Description: `<p>The starting place of all coding journeys.</p>
+		<p>Write some code that will take a command line argument,
+		and print "<i>Hello, <b>arg1</b>!</i>" to the console.</p>
+		<p>For example, if the argument is "World", it will print
+		"<i>Hello, World!</i>"</p>`,
 		TestCases: []TestCase {
 			TestCase {
 				Number: 1,
@@ -62,7 +66,10 @@ var tests = []Test {
 		Number: 2,
 		Group: "Beginner",
 		Title: "FizzBuzz",
-		Description: "TBD",
+		Description: `<p>Write some code that will print the numbers <b>1</b>
+		to <b>20</b> to the console.</p>
+		<p>Where the number is divisible by 3,
+		print <b>arg1</b>. Where divisible by 5, also print <b>arg2</b>.</p>`,
 		TestCases: []TestCase {
 			TestCase {
 				Number: 1,

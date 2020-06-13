@@ -26,15 +26,19 @@ COPY client/coding-challenges .
 RUN npm install
 RUN npm install react-scripts
 
-FROM alpine
+RUN npm run-script build
 
-COPY --from=server-builder /server /server
+FROM alpine AS final
+
+WORKDIR /app
+
+COPY --from=server-builder /server /app/server
 
 RUN apk --no-cache add docker
 
-RUN mkdir -p /static
-COPY --from=client-builder /app/build /static
+RUN mkdir -p /app/static
+COPY --from=client-builder /app/build /app/static
 
-RUN chmod +x /server
+RUN chmod +x /app/server
 
-CMD [ /server ]
+CMD [ "./server" ]

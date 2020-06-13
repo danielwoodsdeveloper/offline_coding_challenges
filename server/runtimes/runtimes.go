@@ -18,7 +18,7 @@ var runtimes = map[string]Runtime {
 		Name: "java7",
 		Display: "Java 7",
 		Image: "openjdk:7-alpine",
-		Commands: []string{"/bin/sh", "-c", "cd /tmp && javac Submission.java && java Submission {INPUTS}"},
+		Commands: []string{"/bin/sh", "-c", "cd /tmp/{LOCATION} && javac Submission.java && java Submission {INPUTS}"},
 		FileName: "Submission.java",
 		Template: []string{
 			"public class Submission {",
@@ -32,7 +32,7 @@ var runtimes = map[string]Runtime {
 		Name: "java8",
 		Display: "Java 8",
 		Image: "openjdk:8-alpine",
-		Commands: []string{"/bin/sh", "-c", "cd /tmp && javac Submission.java && java Submission {INPUTS}"},
+		Commands: []string{"/bin/sh", "-c", "cd /tmp/{LOCATION} && javac Submission.java && java Submission {INPUTS}"},
 		FileName: "Submission.java",
 		Template: []string{
 			"public class Submission {",
@@ -46,7 +46,7 @@ var runtimes = map[string]Runtime {
 		Name: "golang",
 		Display: "Go",
 		Image: "golang:alpine",
-		Commands: []string{"/bin/sh", "-c", "cd /tmp && go run submission.go {INPUTS}"},
+		Commands: []string{"/bin/sh", "-c", "cd /tmp/{LOCATION} && sleep 500s && go run submission.go {INPUTS}"},
 		FileName: "submission.go",
 		Template: []string{
 			"package main",
@@ -66,7 +66,7 @@ var runtimes = map[string]Runtime {
 		Name: "python",
 		Display: "Python",
 		Image: "python:alpine",
-		Commands: []string{"/bin/sh", "-c", "cd /tmp && python submission.py {INPUTS}"},
+		Commands: []string{"/bin/sh", "-c", "cd /tmp/{LOCATION} && python submission.py {INPUTS}"},
 		FileName: "submission.py",
 		Template: []string{
 			"import sys",
@@ -79,7 +79,7 @@ var runtimes = map[string]Runtime {
 		Name: "javascript",
 		Display: "Node JS",
 		Image: "node:alpine",
-		Commands: []string{"/bin/sh", "-c", "cd /tmp && node submission.js {INPUTS}"},
+		Commands: []string{"/bin/sh", "-c", "cd /tmp/{LOCATION} && node submission.js {INPUTS}"},
 		FileName: "submission.js",
 		Template: []string{
 			"var args = process.argv.slice(1)",

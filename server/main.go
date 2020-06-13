@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -113,24 +114,30 @@ func TestSubmission(w http.ResponseWriter, r *http.Request) {
 			content := []byte(strings.Join(sub.Code, "\n"))
 
 			// Code into temp file
-			os.Mkdir(strconv.FormatUint(id, 10), 0755)
-			file, err := os.Create("./" + strconv.FormatUint(id, 10) + "/" + runtime.FileName)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			file.Write(content)
-
 			dir, err := filepath.Abs(filepath.Dir("."))
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 
+			// Convert UID to string
+			strID := strconv.FormatUint(id, 10)
+
+			os.Mkdir(dir + "/" + strID, 0755)
+			file, err := os.Create(dir + "/" + strID + "/" + runtime.FileName)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			file.Write(content)
+
 			// Setup commands for container
 			cmds := []string{}
 			for _, str := range runtime.Commands {
+				// Substitute in runtime specific variables
 				str = strings.ReplaceAll(str, "{INPUTS}", strings.Join(tc.Inputs, " "))
+				str = strings.ReplaceAll(str, "{LOCATION}", strID)
+
 				cmds = append(cmds, str)
 			}
 
@@ -141,13 +148,14 @@ func TestSubmission(w http.ResponseWriter, r *http.Request) {
 			}, &container.HostConfig {
 				Mounts: []mount.Mount {
 					{
-						Type: mount.TypeBind,
-						Source: dir + "/" + strconv.Itoa(int(id)),
+						Type: mount.TypeVolume,
+						Source: "cc-data",
 						Target: "/tmp",	
 					},
 				},
 			}, nil, nil, "")
 			if err != nil {
+				fmt.Println(err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -171,7 +179,7 @@ func TestSubmission(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// ...then read all the outputs...
-			logReader, err := cli.ContainerLogs(context.Background(), resp.ID, types.ContainerLogsOptions{ShowStdout: true})
+			logReader, err := cli.ContainerLogs(context.Background(), resp.ID, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -181,6 +189,14 @@ func TestSubmission(w http.ResponseWriter, r *http.Request) {
 			// ...and transform it into a string
 			logContent, _ := ioutil.ReadAll(logReader)
 
+			// Clean up container
+			err = cli.ContainerRemove(context.Background(), resp.ID, types.ContainerRemoveOptions{})
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			// Clean up temp files
 			err = os.RemoveAll("./" + strconv.Itoa(int(id)))
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)

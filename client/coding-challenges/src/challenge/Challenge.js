@@ -143,7 +143,7 @@ class Challenge extends React.Component {
             <h1>{selectedTest.title}</h1>
             <div style={{paddingBottom: '10px'}} dangerouslySetInnerHTML={{ __html: selectedTest.description }} />
             <Dropdown style={{paddingBottom: '10px'}}>
-              <Dropdown.Toggle id="language-select">
+              <Dropdown.Toggle variant="warning" id="language-select">
                 {selectedRuntime.display}
               </Dropdown.Toggle>
 
@@ -168,7 +168,7 @@ class Challenge extends React.Component {
                 tabSize: 2,
               }}
             />
-            <Button style={{marginBottom: '10px'}} variant="primary" onClick={submitCode} disabled={isSubmitting}>Submit Code</Button>
+            <Button style={{marginBottom: '10px'}} variant="warning" onClick={submitCode} disabled={isSubmitting}>Submit Code</Button>
             {submissionResults.map((item, key) =>
               <Card key={key} bg={item.pass ? "success" : "danger"} text="white" style={{marginTop: '10px', marginBottom: '10px'}}>
                 <Card.Body>
