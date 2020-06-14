@@ -1,6 +1,6 @@
 import React from 'react';
 
-import Navigation from './components/Navigation';
+import Navigation from './Navigation';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
@@ -17,6 +17,7 @@ class App extends React.Component {
   render() {
     const currentView = this.state.currentViewName === "challenges" ? <Challenge /> : <Runtime />;
 
+    // Called when switching between Challenges and Runtimes
     const onViewChange = (view) => {
       this.setState({ currentViewName: view });
     }    

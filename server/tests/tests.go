@@ -127,6 +127,7 @@ var tests = []Test {
 	},
 }
 
+// Get a single test
 func GetTestByNumber(num int) (Test, error) {
 	for _, test := range tests {
 		if test.Number == num {
@@ -137,6 +138,7 @@ func GetTestByNumber(num int) (Test, error) {
 	return Test{}, errors.New("Test not found")
 }
 
+// Get all the tests
 func GetAllTests() ([]Test) {
 	return tests
 }

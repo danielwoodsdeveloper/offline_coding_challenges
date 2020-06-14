@@ -37,8 +37,11 @@ COPY --from=server-builder /server /app/server
 RUN apk --no-cache add docker
 
 RUN mkdir -p /app/static
+RUN mkdir -p /app/temp
 COPY --from=client-builder /app/build /app/static
 
 RUN chmod +x /app/server
+
+EXPOSE 8080
 
 CMD [ "./server" ]

@@ -25,7 +25,7 @@ import (
 	"github.com/sony/sonyflake"
 )
 
-type Submission struct {
+type SubmissionRequest struct {
 	Runtime string `json:"runtime"`
 	Code []string `json:"code"`
 }
@@ -60,11 +60,14 @@ type TestDetailResponse struct {
 var sf *sonyflake.Sonyflake
 var cli *client.Client
 
+// Handles code submission (POST). Fetches the inputs from the relevant
+// test case, spins up a container relative to the selected runtime
+// passes in the code and runs it, fetching the output
 func TestSubmission(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	// Decode request
-	var sub Submission
+	var sub SubmissionRequest
 	err := json.NewDecoder(r.Body).Decode(&sub)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -92,13 +95,14 @@ func TestSubmission(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// If image is not pulled, return error
 	if !checkImageIsPulled(runtime.Image) {
 		return
 	}
 
+	// Run each test case in a new Go routine
 	var wg sync.WaitGroup
 	var tcResponses []TestCaseResponse
-
 	for _, tc := range test.TestCases {
 		wg.Add(1)
 
@@ -123,8 +127,8 @@ func TestSubmission(w http.ResponseWriter, r *http.Request) {
 			// Convert UID to string
 			strID := strconv.FormatUint(id, 10)
 
-			os.Mkdir(dir + "/" + strID, 0755)
-			file, err := os.Create(dir + "/" + strID + "/" + runtime.FileName)
+			os.Mkdir(dir + "/temp/" + strID, 0755)
+			file, err := os.Create(dir + "/temp/" + strID + "/" + runtime.FileName)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -212,6 +216,7 @@ func TestSubmission(w http.ResponseWriter, r *http.Request) {
 				splitOut[i] = stringsx.Clean(splitOut[i])
 			}
 
+			// Build response
 			tcr := TestCaseResponse{}
 			tcr.Number = tc.Number
 			tcr.Pass = strings.Join(splitOut, "\n") == strings.Join(tc.ExpectedOutput, "\n")
@@ -221,12 +226,15 @@ func TestSubmission(w http.ResponseWriter, r *http.Request) {
 
 			tcResponses = append(tcResponses, tcr)
 
+			// Go routine is done
 			wg.Done()
 		}(tc)
 	}
 
+	// Wait for all Go routines to finish
 	wg.Wait()
 
+	// If all test cases have passed, overall pass
 	overallPass := true
 	for _, tcr := range tcResponses {
 		if tcr.Pass == false {
@@ -250,6 +258,8 @@ func TestSubmission(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
+// Handles GET request for the details of a specific runtime.
+// Runtime is specified by the "name" query param.
 func GetRuntimeDetails(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
@@ -277,6 +287,7 @@ func GetRuntimeDetails(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
+// Handles a GET request for the details of all runtimes
 func GetAllRuntimeDetails(w http.ResponseWriter, r *http.Request) {
 	// Get all runtimes
 	res := []RuntimeDetailResponse{}
@@ -301,6 +312,9 @@ func GetAllRuntimeDetails(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
+// Handles a POST request to install a specific runtime. Runtime
+// is specified by the "name" query param. To install the runtime,
+// the relevant Docker image will be pulled
 func InstallRuntime(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
@@ -311,7 +325,7 @@ func InstallRuntime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Pull image
+	// Pull Docker image
 	reader, err := cli.ImagePull(context.Background(), runtime.Image, types.ImagePullOptions{})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -319,6 +333,7 @@ func InstallRuntime(w http.ResponseWriter, r *http.Request) {
 	}
 	io.Copy(os.Stdout, reader)
 
+	// Build HTTP response (details of runtime)
 	res := RuntimeDetailResponse{}
 	res.Name = runtime.Name
 	res.Display = runtime.Display
@@ -336,6 +351,8 @@ func InstallRuntime(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
+// Handles a GET request to fetch the details of a specific
+// test. Test is specified by the "test_number" query param
 func GetTestDetails(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
@@ -353,6 +370,7 @@ func GetTestDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Build HTTP response
 	res := TestDetailResponse{}
 	res.Title = test.Title
 	res.Description = test.Description
@@ -368,6 +386,7 @@ func GetTestDetails(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
+// Handles a GET request to fetch the details of all tests
 func GetAllTestDetails(w http.ResponseWriter, r *http.Request) {
 	// Get all tests
 	res := []TestDetailResponse{}
@@ -390,6 +409,7 @@ func GetAllTestDetails(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
+// Checks if Docker image has been pulled on the host
 func checkImageIsPulled(name string) bool {
 	images, err := cli.ImageList(context.Background(), types.ImageListOptions{})
 	if err != nil {
@@ -418,6 +438,7 @@ func init() {
 func main() {
 	router := mux.NewRouter()
 	
+	// Handle routes
 	router.HandleFunc("/tests/{test_number}/submission", TestSubmission).Methods("POST")
 	router.HandleFunc("/tests/{test_number}", GetTestDetails).Methods("GET")
 	router.HandleFunc("/tests", GetAllTestDetails).Methods("GET")

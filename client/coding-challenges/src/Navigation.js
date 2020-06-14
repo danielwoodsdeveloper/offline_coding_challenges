@@ -1,4 +1,5 @@
 import React from 'react';
+
 import Navbar from 'react-bootstrap/Navbar';
 import Nav from 'react-bootstrap/Nav';
 
@@ -8,6 +9,7 @@ class Navigation extends React.Component {
   }
 
   render() {
+    // Called when a the view is changed, passed back to App component
     const onClick = (e, name) => {
       e.preventDefault();
       this.setState({ key: name });

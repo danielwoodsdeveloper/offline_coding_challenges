@@ -1,4 +1,5 @@
 import React from 'react';
+
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
@@ -26,11 +27,9 @@ class Runtime extends React.Component {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       }
-    })
-    .then((res) => {
+    }).then((res) => {
       return res.json()
-    })
-    .then((data) => {
+    }).then((data) => {
       data.sort((a, b) => {
         if (a.display < b.display) {
           return -1
@@ -43,8 +42,7 @@ class Runtime extends React.Component {
         return 0
       }).map(item => item.isInstalling = false)
       this.setState({ runtimes: data })
-    })
-    .catch(console.log)
+    }).catch(console.log)
   }
 
   render() {
@@ -68,19 +66,16 @@ class Runtime extends React.Component {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({})
-      })
-      .then((res) => {
+      }).then((res) => {
         return res.json()
-      })
-      .then((data) => {
+      }).then((data) => {
         let runtimes = this.state.runtimes;
 
         let ind = runtimes.indexOf(runtime);
         runtimes[ind].installed = data.installed;
 
         this.setState({ runtimes: runtimes });
-      })
-      .catch(console.log);
+      }).catch(console.log);
     }
 
     return <Container>
