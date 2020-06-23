@@ -18,10 +18,10 @@ class Navigation extends React.Component {
 
     return (
       <Navbar expand="lg" variant="light" bg="warning">
-        <Nav className="mr-auto" activeKey={this.state.key}>
+        <Nav className="mr-auto" activeKey={this.state.key} style={{flexDirection: 'row'}}>
           <Navbar.Brand href="#"><img src="/logo.svg" width="30" height="30" alt="Coding Challenges logo" /></Navbar.Brand>
-          <Nav.Link onClick={(e) => onClick(e, "challenges")} eventKey="challenges">Challenges</Nav.Link>
-          <Nav.Link onClick={(e) => onClick(e, "runtimes")} eventKey="runtimes">Runtimes</Nav.Link>
+          <Nav.Link onClick={(e) => onClick(e, "challenges")} eventKey="challenges" style={{paddingLeft: '10px', paddingRight: '10px'}}>Challenges</Nav.Link>
+          <Nav.Link onClick={(e) => onClick(e, "runtimes")} eventKey="runtimes" style={{paddingLeft: '10px', paddingRight: '10px'}}>Runtimes</Nav.Link>
         </Nav>
       </Navbar>
     );

@@ -140,7 +140,7 @@ class Challenge extends React.Component {
             <div style={{paddingBottom: '10px'}} dangerouslySetInnerHTML={{ __html: selectedTest.description }} />
 
             {/* Select the language */}
-            <Dropdown style={{paddingBottom: '10px'}}>
+            <Dropdown style={{paddingBottom: '10px', flexDirection: 'column'}}>
               <Dropdown.Toggle variant="warning" id="language-select">
                 {selectedRuntime.display}
               </Dropdown.Toggle>
