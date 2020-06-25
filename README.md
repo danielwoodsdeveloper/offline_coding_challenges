@@ -14,11 +14,11 @@ Complete coding challenges. Anywhere. Anytime.
 
 **Offline Coding Challenges** is designed be run in Docker. The Dockerfile is in the root directory. To build the image (tagged as "offline-coding-challenges"):
 
-```docker build . -t offline-coding-challengs```
+```docker build . -t offline-coding-challenges```
 
 To run the image we've just built:
 
-```docker run -p 8080:8080 -v /var/run/docker.sock:/var/run/docker.sock -v cc-data:/app/temp offline-coding-challengs```
+```docker run -p 8080:8080 -v /var/run/docker.sock:/var/run/docker.sock -v cc-data:/app/temp offline-coding-challenges```
 
 ### Server (Go)
 
