@@ -20,6 +20,10 @@ To run the image we've just built:
 
 ```docker run -p 8080:8080 -v /var/run/docker.sock:/var/run/docker.sock -v cc-data:/app/temp offline-coding-challenges```
 
+Or simply pull it from Docker Hub:
+
+```docker run -p 8080:8080 -v /var/run/docker.sock:/var/run/docker.sock -v cc-data:/app/temp danielwoodsdeveloper/offline-coding-challenges```
+
 ### Server (Go)
 
 If you're working on the server, it can be run without Docker. First, make sure you've loaded all the dependencies via `go get`. Then, simply:
